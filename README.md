@@ -25,3 +25,15 @@ You will need :
 4. Repeat parts 1-3 for each stylus/cartridge/preamp you want to test
 5. Run anal.py ("python anal.py")
 6. Look at the pretty graphs
+
+
+## Examples
+
+### Comparing various different combinations of Shure, Jico and Tonar cartridges and stylii:
+This shows that the Jico carts and DJ Imp Nude stylii significantly attenuate the top end compared to the regular Shure M44-7 and Tonar stylus (although it should be noted that Jico are thought to be the manufacturers of the Tonar stylus).
+![cheeart](examplegraphs/Figure_1.png?raw=true "cheeart")
+
+
+### Examining the effect that high-capacitance cables have:
+The increased capacitance attenuates higher frequencies, and causes a resonant peak around 6000-8000hz.
+![cheeart](examplegraphs/Figure_2.png?raw=true "cheeart")
