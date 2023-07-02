@@ -1,76 +1,130 @@
 from scipy.io import wavfile # scipy library to read wav files
+from scipy.signal import butter, sosfilt, sosfreqz
 import numpy as np
 
+def column(matrix, i):
+    return [row[i] for row in matrix]
+
+freqs1 = [
+            [20.0, 12.5, 0.0],
+            [25.0, 24.5, 0.0],
+            [31.5, 37, 0.0],
+            [40.0, 48.5, 0.0],
+            [50.0, 60.5, 0.0],
+            [63.0, 72, 0.0],
+            [80.0, 83.5, 0.0],
+            [100.0, 95, 0.0], 
+            [125.0, 107.5, 0.0], 
+            [160.0, 119.5, 0.0], 
+            [200.0, 131.5, 0.0], 
+            [250.0, 144, 0.0], 
+            [315.0, 156, 0.0], 
+            [400.0, 168, 0.0], 
+            [500.0, 180, 0.0], 
+            [630.0, 192.5, 0.0], 
+            [800.0, 204, 0.0], 
+            #[1000.0, 216, 0.0],
+          ]
+
+#1000 is at 230.5
+
+freqs2 = [
+        [1250.0, 243.5, 0.0],
+        [1600.0, 256, 0.0],
+        [2000.0, 268, 0.0],
+        [2500.0, 280 , 0.0],
+        [3150.0, 293, 0.0],
+        [4000.0, 305.2, 0.0],
+        [5000.0, 317, 0.0],
+        [6300.0, 330, 0.0],
+        [8000.0, 342, 0.0],
+        [10000.0, 354, 0.0],
+        [12500.0, 366.5, 0.0],
+        [16000.0, 379, 0.0],
+        [20000.0, 392, 0.0],
+        #[1000.0,  403.5 , 0.0],
+        ]
+
+# return amplitude of a section of audio where the start is at samp
+def analband(samp, Audiodata, freq, fs):
+
+    #chop a second off start and end
+    startsamp = samp + (fs * 1)
+    endsamp = samp + (fs * 9)
+
+    but = butter(2, [freq - (freq / 6), freq + (freq / 6)], 'bandpass', fs=fs, output='sos')
+
+    newdat = sosfilt(but, Audiodata[startsamp:endsamp])
+    #newdat = Audiodata[startsamp:endsamp]
+    
+    return np.sqrt(np.mean(newdat ** 2))
+
+
 def analfile(AudioName):
-    fs, Audiodata = wavfile.read(AudioName)
 
-    avg_array = []
-    for tu in Audiodata:
-        avg_array.append((tu[0] / 2) + (tu[1] / 2) )
+    freqs = []
 
-    Audiodata = avg_array
-
+    fs, a = wavfile.read(AudioName)
+    b = a.astype(np.float32)
+    Audiodata = np.mean(b, axis=1)
 
 
-# spectrum
-    from scipy.fftpack import fft # fourier transform
-    n = 400000 #len(Audiodata) 
-    AudioFreq = fft(Audiodata)
-    AudioFreq = AudioFreq[0:int(np.ceil((n+1)/2.0))] #Half of the spectrum
-    MagFreq = np.abs(AudioFreq) # Magnitude
-    MagFreq = MagFreq / float(n)
-# power spectrum
-    MagFreq = MagFreq**2
-    if n % 2 > 0: # ffte odd 
-        MagFreq[1:len(MagFreq)] = MagFreq[1:len(MagFreq)] * 2
-    else:# fft even
-        MagFreq[1:len(MagFreq) -1] = MagFreq[1:len(MagFreq) - 1] * 2 
+    ## reference 1000hz tone for first batch of freqs is at track start
+    ref1 = analband(0, Audiodata, 1000.0, fs)
 
-    from scipy.ndimage import gaussian_filter
-    MagFreq = gaussian_filter(MagFreq, 2500)
-    return fs,n,MagFreq
+    print ("ref1 db", 20*np.log10(ref1 / 2.0**31))
+
+    # now do other bands
+    for freq in freqs1:
+        currsamp = int(freq[1] * fs)
+        res = [freq[0], 20*np.log10(analband(currsamp, Audiodata, freq[0], fs) / ref1)]
+        freqs.append(res)
+        print(res[0], res[1], ",")
+
+    # 1000 should be at zero
+    res = [1000.0, 0.0]
+    freqs.append(res)
+
+    # ref tone for second batch of freqs is at 230.5sec   
+    ref2 = analband(int(230.5 * fs), Audiodata, 1000.0, fs)
+
+    # now do other bands
+    for freq in freqs2:
+        currsamp = int(freq[1] * fs)
+        res = [freq[0], 20*np.log10(analband(currsamp, Audiodata, freq[0], fs) / ref2)]
+        freqs.append(res)
+        print(res[0], res[1], ",")
+
+    freqs.sort()    
+    return fs, freqs
+
+
+filez = [
+    #"DJM-750 PDX3000Mix M44-7.wav", 
+    #"#z2 technics groovetool.wav", 
+    #"#z2 technics audiotechnica.wav",
+    "pdx AUDIO TECHNICA PISH.wav",
+    #"#pdx GROOVETOOL 3G.wav",
+    #"pdx JICO J44 7 -- JICO DJ IMP NUDE.wav",
+    "pdx M44-7 TONAR 2.25G.wav",
+    #"pdx SHURE M44-7 -- JICO DJ IMP NUDE.wav"
+    "pdx M44-7 TONAR CRAP CABLES.wav",
+    "pdx AUDIO TECHNICA PISH CRAPPY CABLES.wav",
+    ]
 
 # Plot the audio signal in time
 import matplotlib.pyplot as plt
 
-fs, n, MagFreq = analfile("idealpink.wav")
-fs2, n2, MagFreq2 = analfile("pinkgroovetool.wav")
-fs2, n2, MagFreq3 = analfile("pinkaudiotechnica.wav")
-
-av1 = np.mean(np.absolute(MagFreq))
-av2 = np.mean(np.absolute(MagFreq2))
-av3 = np.mean(np.absolute(MagFreq3))
-
-MagFreq2 = np.multiply(MagFreq2, av1/av2)
-MagFreq3 = np.multiply(MagFreq3, av1/av3)
 
 plt.figure()
 plt.xscale('log')
-freqAxis = np.arange(0,int(np.ceil((n+1)/2.0)), 1.0) * (fs / n);
+for fil in filez:
+    print("-----------", fil)
+    fs, fr = analfile(fil)
 
-Diff1 = np.subtract(10*np.log10(MagFreq), 10*np.log10(MagFreq))
-Diff2 = np.subtract(10*np.log10(MagFreq2), 10*np.log10(MagFreq))
-Diff3 = np.subtract(10*np.log10(MagFreq3), 10*np.log10(MagFreq))
-
-plt.plot(freqAxis/1000.0, Diff1, label="Ideal") #Power spectrum
-plt.plot(freqAxis/1000.0, Diff2, label="Numark Groovetool") #Power spectrum
-plt.plot(freqAxis/1000.0, Diff3, label="Audio Technica cheap shite") #Power spectrum
+    plt.plot(column(fr, 0), column(fr, 1), label=fil, linewidth=4)
 
 leg = plt.legend(loc='lower center')
-
-plt.xlabel('Frequency (kHz)'); plt.ylabel('Power spectrum (dB)');
-
-plt.figure()
-plt.xscale('log')
-freqAxis = np.arange(0,int(np.ceil((n+1)/2.0)), 1.0) * (fs / n);
-
-plt.plot(freqAxis/1000.0, 10*np.log10(MagFreq), label="Ideal") #Power spectrum
-plt.plot(freqAxis/1000.0, 10*np.log10(MagFreq2), label="Numark Groovetool") #Power spectrum
-plt.plot(freqAxis/1000.0, 10*np.log10(MagFreq3), label="Audio Technica cheap shite") #Power spectrum
-
-leg = plt.legend(loc='lower center')
-
-plt.xlabel('Frequency (kHz)'); plt.ylabel('Power spectrum (dB)');
-
-
+plt.xlabel('Frequency (Hz)'); plt.ylabel('RMS compared to ref (dB)')
 plt.show()
+#analfile("big.wav")
