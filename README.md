@@ -35,5 +35,5 @@ This shows that the Jico carts and DJ Imp Nude stylii significantly attenuate th
 
 
 ### Examining the effect that high-capacitance cables have:
-The increased capacitance attenuates higher frequencies, and causes a resonant peak around 6000-8000hz.
+The increased capacitance attenuates higher frequencies.
 ![cheeart](examplegraphs/Figure_2.png?raw=true "cheeart")
