@@ -52,11 +52,12 @@ def analband(samp, Audiodata, freq, fs):
     startsamp = samp + (fs * 1)
     endsamp = samp + (fs * 9)
 
+    # bandpass at the expected frequency
     but = butter(2, [freq - (freq / 6), freq + (freq / 6)], 'bandpass', fs=fs, output='sos')
 
     newdat = sosfilt(but, Audiodata[startsamp:endsamp])
-    #newdat = Audiodata[startsamp:endsamp]
     
+    # calc RMS
     return np.sqrt(np.mean(newdat ** 2))
 
 
@@ -64,6 +65,7 @@ def analfile(AudioName):
 
     freqs = []
 
+    # open file and sum to mono
     fs, a = wavfile.read(AudioName)
     b = a.astype(np.float32)
     Audiodata = np.mean(b, axis=1)
@@ -99,30 +101,24 @@ def analfile(AudioName):
     return fs, freqs
 
 
-filez = [
-    #"DJM-750 PDX3000Mix M44-7.wav", 
-    #"#z2 technics groovetool.wav", 
-    #"#z2 technics audiotechnica.wav",
-    "pdx AUDIO TECHNICA PISH.wav",
-    #"#pdx GROOVETOOL 3G.wav",
-    #"pdx JICO J44 7 -- JICO DJ IMP NUDE.wav",
-    "pdx M44-7 TONAR 2.25G.wav",
-    #"pdx SHURE M44-7 -- JICO DJ IMP NUDE.wav"
-    "pdx M44-7 TONAR CRAP CABLES.wav",
-    "pdx AUDIO TECHNICA PISH CRAPPY CABLES.wav",
-    ]
 
 # Plot the audio signal in time
 import matplotlib.pyplot as plt
+import glob
 
+filez = glob.glob('*.wav')
 
 plt.figure()
 plt.xscale('log')
+
+plt.grid(which="major", color="black")
+plt.grid(which="minor")
+
 for fil in filez:
     print("-----------", fil)
     fs, fr = analfile(fil)
 
-    plt.plot(column(fr, 0), column(fr, 1), label=fil, linewidth=4)
+    plt.plot(column(fr, 0), column(fr, 1), label=fil, linewidth=3)
 
 leg = plt.legend(loc='lower center')
 plt.xlabel('Frequency (Hz)'); plt.ylabel('RMS compared to ref (dB)')
